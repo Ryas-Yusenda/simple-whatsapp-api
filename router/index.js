@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import * as controllers from '../controllers/index.js';
 import { restoreSession } from '../lib/whatsapp.js';
 import { validateAccessToken, validateDestination } from '../lib/middleware.js';
+import { sendApiResponse } from '../lib/response.js';
 
 const router = express.Router();
 
@@ -22,8 +23,7 @@ const fiveSecondLimiter = createLimiter(5000);
 const eightSecondLimiter = createLimiter(8000);
 
 router.get('/', (req, res) => {
-  res.json({
-    message: 'Server is running',
+  sendApiResponse(res, 200, 'Server is running', {
     timestamp: new Date().toISOString(),
   });
 });
