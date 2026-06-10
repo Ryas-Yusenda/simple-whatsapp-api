@@ -13,7 +13,7 @@ This project exposes a small Express-based REST API for:
 - Sending photo messages
 - Sending document messages
 
-It also includes socket-based connection handling for QR code pairing and realtime device updates.
+It also includes socket-based connection handling for QR code pairing and realtime device updates, as well as request rate limiting on critical message and device endpoints.
 
 ## Installation
 
@@ -60,6 +60,21 @@ npx nodemon app.js
 - `POST /api/v1/messages/text` - Send a text message
 - `POST /api/v1/messages/photo` - Send a photo message
 - `POST /api/v1/messages/document` - Send a document message
+
+## Rate Limiting
+
+The API applies rate limiting to reduce abuse and excessive request bursts on sensitive endpoints.
+
+| Endpoint                          | Limit                     |
+| --------------------------------- | ------------------------- |
+| `POST /api/v1/devices/connect`    | 1 request every 5 seconds |
+| `POST /api/v1/devices/restore`    | 1 request every 5 seconds |
+| `POST /api/v1/devices/disconnect` | 1 request every 5 seconds |
+| `POST /api/v1/messages/text`      | 1 request every 1 second  |
+| `POST /api/v1/messages/photo`     | 1 request every 5 seconds |
+| `POST /api/v1/messages/document`  | 1 request every 8 seconds |
+
+If the limit is exceeded, the API responds with HTTP 429 and a message: `Too many requests, please try again later.`
 
 ## Request Headers
 
