@@ -1,0 +1,75 @@
+@baseUrl = http://localhost:3100
+@xWhatsappHost = X_ACCESS_TOKEN
+@deviceNumber = xxxxxxxxxxxx
+@sendNumber = xxxxxxxxxxxx
+
+### Root endpoint
+GET {{baseUrl}}/
+
+### Connect device, use this website to view image https://jaredwinick.github.io/base64-image-viewer/
+POST {{baseUrl}}/api/v1/devices/connect
+Content-Type: application/json
+x-access-token: {{xWhatsappHost}}
+
+{
+  "token": "{{deviceNumber}}"
+}
+
+### Restore device session
+POST {{baseUrl}}/api/v1/devices/restore
+Content-Type: application/json
+x-access-token: {{xWhatsappHost}}
+
+{
+  "token": "{{deviceNumber}}"
+}
+
+
+### Logout device
+POST {{baseUrl}}/api/v1/devices/disconnect
+Content-Type: application/json
+x-access-token: {{xWhatsappHost}}
+
+{
+  "token": "{{deviceNumber}}"
+}
+
+### Send text message
+POST {{baseUrl}}/api/v1/messages/text
+Content-Type: application/json
+x-access-token: {{xWhatsappHost}}
+
+{
+  "token": "{{deviceNumber}}",
+  "number": "{{sendNumber}}",
+  "msgid": "",
+  "text": "Hello from WhatsApp API test"
+}
+
+### Send photo message
+POST {{baseUrl}}/api/v1/messages/photo
+Content-Type: application/json
+x-access-token: {{xWhatsappHost}}
+
+{
+  "token": "{{deviceNumber}}",
+  "number": "{{sendNumber}}",
+  "url": "https://picsum.photos/200",
+  "caption": "Test image",
+  "viewonce": false,
+  "msgid": ""
+}
+
+### Send document message
+POST {{baseUrl}}/api/v1/messages/document
+Content-Type: application/json
+x-access-token: {{xWhatsappHost}}
+
+{
+  "token": "{{deviceNumber}}",
+  "number": "{{sendNumber}}",
+  "url": "https://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf",
+  "caption": "Test document",
+  "filename": "sample.pdf",
+  "msgid": ""
+}
