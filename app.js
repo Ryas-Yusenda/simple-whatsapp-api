@@ -11,25 +11,28 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT_NODE;
 
+app.set('trust proxy', 1);
+
 app.use((req, res, next) => {
   res.set('Cache-Control', 'no-store');
+
   next();
 });
 
-app.use(
+app.use([
   bodyParser.urlencoded({
     extended: false,
     limit: '50mb',
     parameterLimit: 100000,
   }),
-);
-
-app.use(bodyParser.json());
-app.use(router);
+  bodyParser.json(),
+]);
 
 app.use((req, res) => {
   res.redirect('/');
 });
+
+app.use(router);
 
 (async () => {
   server.listen(PORT, () => {
