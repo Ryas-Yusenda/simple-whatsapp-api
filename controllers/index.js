@@ -4,21 +4,32 @@ import { sendApiResponse } from '../lib/response.js';
 
 const connectDevice = async (req, res) => {
   const { token } = req.body;
-  if (!token) return sendApiResponse(res, 400, 'Token needed', {});
+  if (!token) return sendApiResponse(res, 400, 'Token needed', { qrcode: null, connected: false });
   try {
     const first = await wa.connectDevice(token);
-    if (first?.status === true) {
-      return sendApiResponse(res, 200, 'Connected', { qrcode: null, connected: true });
-    }
-    if (first?.qrcode) {
-      return sendApiResponse(res, 200, 'Scan this QR code with your WhatsApp', { qrcode: first.qrcode });
-    }
-    if (!wa.connections[token]) {
-      return sendApiResponse(res, 200, 'Processing', { qrcode: null });
-    }
     let done = false;
-    const timeoutMs = 30000;
-    const result = { qrcode: null, message: 'Processing' };
+
+    if (first?.status === true) {
+      return sendApiResponse(res, 200, 'Your device is already connected', {
+        qrcode: null,
+        connected: true,
+      });
+    }
+
+    if (first?.qrcode) {
+      return sendApiResponse(res, 200, 'Scan this QR code with your WhatsApp(1)', {
+        qrcode: first.qrcode,
+        connected: false,
+      });
+    }
+
+    if (!wa.connections[token]) {
+      return sendApiResponse(res, 200, 'Failed to connect device(1)', {
+        qrcode: null,
+        connected: false,
+      });
+    }
+
     const handler = async (update) => {
       if (done) return;
       if (update.connection === 'open') {
@@ -26,9 +37,10 @@ const connectDevice = async (req, res) => {
         try {
           wa.connections[token].ev.off('connection.update', handler);
         } catch {}
-        result.qrcode = null;
-        result.message = 'Connected';
-        return sendApiResponse(res, 200, result.message, { qrcode: result.qrcode, connected: true });
+        return sendApiResponse(res, 200, 'Connected', {
+          qrcode: null,
+          connected: true,
+        });
       }
       if (update.qr) {
         try {
@@ -37,9 +49,10 @@ const connectDevice = async (req, res) => {
           try {
             wa.connections[token].ev.off('connection.update', handler);
           } catch {}
-          result.qrcode = dataUrl;
-          result.message = 'Scan this QR code with your WhatsApp';
-          return sendApiResponse(res, 200, result.message, { qrcode: result.qrcode });
+          return sendApiResponse(res, 200, 'Scan this QR code with your WhatsApp(2)', {
+            qrcode: dataUrl,
+            connected: false,
+          });
         } catch {}
       }
       if (update.connection === 'close') {
@@ -47,35 +60,35 @@ const connectDevice = async (req, res) => {
         try {
           wa.connections[token].ev.off('connection.update', handler);
         } catch {}
-        result.qrcode = null;
-        result.message = 'Disconnected';
-        return sendApiResponse(res, 200, result.message, { qrcode: result.qrcode, connected: false });
+        return sendApiResponse(res, 200, 'Disconnected', {
+          qrcode: null,
+          connected: false,
+        });
       }
     };
+
     wa.connections[token].ev.on('connection.update', handler);
-    setTimeout(async () => {
+
+    setTimeout(() => {
       if (done) return;
+
       done = true;
+
       try {
         wa.connections[token].ev.off('connection.update', handler);
       } catch {}
-      try {
-        const last = await wa.connectDevice(token);
-        if (last?.status === true) {
-          return sendApiResponse(res, 200, 'Connected', { qrcode: null, connected: true });
-        }
-        if (last?.qrcode) {
-          console.log(last.qrcode);
-          return sendApiResponse(res, 200, 'Scan this QR code with your WhatsApp', { qrcode: last.qrcode });
-        }
-        return sendApiResponse(res, 200, 'Timeout', { qrcode: null, connected: false });
-      } catch {
-        return sendApiResponse(res, 200, 'Timeout', { qrcode: null, connected: false });
-      }
-    }, timeoutMs);
+
+      return sendApiResponse(res, 408, 'Connection timeout', {
+        qrcode: null,
+        connected: false,
+      });
+    }, 60000);
   } catch (error) {
-    console.log(error);
-    return sendApiResponse(res, 500, 'Failed to connect device', { error });
+    return sendApiResponse(res, 500, 'Failed to connect device(2)', {
+      qrcode: null,
+      connected: false,
+      error: error.message || error.toString(),
+    });
   }
 };
 
@@ -83,7 +96,10 @@ const disconnectDevice = async (req, res) => {
   const { token: token } = req.body;
   if (token) {
     const result = await wa.disconnectDevice(token);
-    return sendApiResponse(res, 200, result?.message || 'Device disconnected', result);
+    return sendApiResponse(res, 200, result?.message || 'Device disconnected', {
+      success: result?.status === true,
+      token,
+    });
   }
   return sendApiResponse(res, 400, 'Check your parameter', {});
 };
@@ -92,7 +108,11 @@ const sendTextMessage = async (req, res) => {
   const { token, number, msgid, text } = req.body;
   if (token && number && text) {
     const result = await wa.sendTextMessage(token, number, msgid ?? '', text);
-    return sendResponse(result, res, 'Message sent successfully');
+    if (result) {
+      return sendApiResponse(res, 200, 'Message sent successfully', result);
+    }
+
+    return sendApiResponse(res, 400, 'Failed to send message', {});
   }
   return sendApiResponse(res, 400, 'Check your parameter', {});
 };
@@ -101,7 +121,11 @@ const sendPhotoMessage = async (req, res) => {
   const { token, number, url, caption, msgid, viewonce } = req.body;
   if (token && number && url) {
     const result = await wa.sendPhoto(token, number, url, caption ?? '', viewonce ?? false, msgid ?? '');
-    return sendResponse(result, res, 'Photo message sent successfully');
+    if (result) {
+      return sendApiResponse(res, 200, 'Photo message sent successfully', result);
+    }
+
+    return sendApiResponse(res, 400, 'Failed to send photo message', {});
   }
   return sendApiResponse(res, 400, 'Check your parameter', {});
 };
@@ -109,18 +133,14 @@ const sendPhotoMessage = async (req, res) => {
 const sendDocumentMessage = async (req, res) => {
   const { token, number, url, caption, filename, msgid } = req.body;
   if (token && number && url) {
-    console.log('RUNNING', { token, number, url, caption, filename, msgid });
     const result = await wa.sendDocument(token, number, url, caption ?? '', filename, msgid ?? '');
-    return sendResponse(result, res, 'Document message sent successfully');
+    if (result) {
+      return sendApiResponse(res, 200, 'Document message sent successfully', result);
+    }
+
+    return sendApiResponse(res, 400, 'Failed to send document message', {});
   }
   return sendApiResponse(res, 400, 'Check your parameter', {});
-};
-
-const sendResponse = (result, res, successMessage = 'Request completed successfully') => {
-  if (result) {
-    return sendApiResponse(res, 200, successMessage, result);
-  }
-  return sendApiResponse(res, 400, 'Check your whatsapp connection', {});
 };
 
 export { connectDevice, disconnectDevice, sendTextMessage, sendPhotoMessage, sendDocumentMessage };
