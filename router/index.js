@@ -22,10 +22,6 @@ const oneSecondLimiter = createLimiter(1000);
 const fiveSecondLimiter = createLimiter(5000);
 const eightSecondLimiter = createLimiter(8000);
 
-router.get('/', (req, res) => {
-  sendApiResponse(res, 200, 'Server is running', {});
-});
-
 router.post('/api/v1/devices/connect', fiveSecondLimiter, validateAccessToken, controllers.connectDevice);
 router.post('/api/v1/devices/restore', fiveSecondLimiter, validateAccessToken, restoreSession);
 router.post('/api/v1/devices/disconnect', fiveSecondLimiter, validateAccessToken, controllers.disconnectDevice);

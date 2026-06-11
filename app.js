@@ -6,6 +6,7 @@ import bodyParser from 'body-parser';
 import { getConnectedDevices } from './database/index.js';
 import router from './router/index.js';
 import * as wa from './lib/whatsapp.js';
+import { sendApiResponse } from './lib/response.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -15,24 +16,23 @@ app.set('trust proxy', 1);
 
 app.use((req, res, next) => {
   res.set('Cache-Control', 'no-store');
-
   next();
 });
 
-app.use([
+app.use(
   bodyParser.urlencoded({
     extended: false,
     limit: '50mb',
     parameterLimit: 100000,
   }),
-  bodyParser.json(),
-]);
-
-app.use((req, res) => {
-  res.redirect('/');
-});
+);
+app.use(bodyParser.json());
 
 app.use(router);
+
+app.use((req, res) => {
+  sendApiResponse(res, 200, 'Server is running', {});
+});
 
 (async () => {
   server.listen(PORT, () => {
