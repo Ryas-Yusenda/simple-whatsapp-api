@@ -14,7 +14,9 @@ const createLimiter = (windowMs) =>
     standardHeaders: true,
     legacyHeaders: false,
     message: {
-      error: 'Too many requests, please try again later.',
+      data: {},
+      message: 'Too many requests, please try again later.',
+      status: 429,
     },
   });
 
