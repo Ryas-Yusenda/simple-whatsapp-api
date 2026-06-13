@@ -2,11 +2,11 @@ import * as wa from '../lib/whatsapp.js';
 import QRCode from 'qrcode';
 import { sendApiResponse } from '../lib/response.js';
 
-const connectDevice = async (req, res) => {
+async function connectDevice(req, res) {
   const token = process.env.SENDER_NUMBER;
-  if (!token) return sendApiResponse(res, 400, 'Token needed', { qrcode: null, connected: false });
+  if (!token) return sendApiResponse(res, 400, 'SENDER_NUMBER not configured', { qrcode: null, connected: false });
   try {
-    const first = await wa.connectDevice(token);
+    const first = await wa.connectDevice();
     let done = false;
 
     if (first?.status === true) {
@@ -23,19 +23,19 @@ const connectDevice = async (req, res) => {
       });
     }
 
-    if (!wa.connections[token]) {
+    if (!wa.getConnection()) {
       return sendApiResponse(res, 200, 'Failed to connect device(1)', {
         qrcode: null,
         connected: false,
       });
     }
 
-    const handler = async (update) => {
+    async function handler(update) {
       if (done) return;
       if (update.connection === 'open') {
         done = true;
         try {
-          wa.connections[token].ev.off('connection.update', handler);
+          wa.getConnection().ev.off('connection.update', handler);
         } catch {}
         return sendApiResponse(res, 200, 'Connected', {
           qrcode: null,
@@ -47,7 +47,7 @@ const connectDevice = async (req, res) => {
           const dataUrl = await QRCode.toDataURL(update.qr);
           done = true;
           try {
-            wa.connections[token].ev.off('connection.update', handler);
+            wa.getConnection().ev.off('connection.update', handler);
           } catch {}
           return sendApiResponse(res, 200, 'Scan this QR code with your WhatsApp(2)', {
             qrcode: dataUrl,
@@ -58,16 +58,16 @@ const connectDevice = async (req, res) => {
       if (update.connection === 'close') {
         done = true;
         try {
-          wa.connections[token].ev.off('connection.update', handler);
+          wa.getConnection().ev.off('connection.update', handler);
         } catch {}
         return sendApiResponse(res, 200, 'Disconnected', {
           qrcode: null,
           connected: false,
         });
       }
-    };
+    }
 
-    wa.connections[token].ev.on('connection.update', handler);
+    wa.getConnection().ev.on('connection.update', handler);
 
     setTimeout(() => {
       if (done) return;
@@ -75,7 +75,7 @@ const connectDevice = async (req, res) => {
       done = true;
 
       try {
-        wa.connections[token].ev.off('connection.update', handler);
+        wa.getConnection().ev.off('connection.update', handler);
       } catch {}
 
       return sendApiResponse(res, 408, 'Connection timeout', {
@@ -90,25 +90,25 @@ const connectDevice = async (req, res) => {
       error: error.message || error.toString(),
     });
   }
-};
+}
 
-const disconnectDevice = async (req, res) => {
+async function disconnectDevice(req, res) {
   const token = process.env.SENDER_NUMBER;
   if (token) {
-    const result = await wa.disconnectDevice(token);
+    const result = await wa.disconnectDevice();
     return sendApiResponse(res, 200, result?.message || 'Device disconnected', {
       success: result?.status === true,
       token,
     });
   }
   return sendApiResponse(res, 400, 'Check your parameter', {});
-};
+}
 
-const sendTextMessage = async (req, res) => {
+async function sendTextMessage(req, res) {
   const token = process.env.SENDER_NUMBER;
   const { number, msgid, text } = req.body;
   if (token && number && text) {
-    const result = await wa.sendTextMessage(token, number, msgid ?? '', text);
+    const result = await wa.sendTextMessage(number, msgid ?? '', text);
     if (result) {
       return sendApiResponse(res, 200, 'Message sent successfully', result);
     }
@@ -116,13 +116,13 @@ const sendTextMessage = async (req, res) => {
     return sendApiResponse(res, 400, 'Failed to send message', {});
   }
   return sendApiResponse(res, 400, 'Check your parameter', {});
-};
+}
 
-const sendPhotoMessage = async (req, res) => {
+async function sendPhotoMessage(req, res) {
   const token = process.env.SENDER_NUMBER;
   const { number, url, caption, msgid, viewonce } = req.body;
   if (token && number && url) {
-    const result = await wa.sendPhoto(token, number, url, caption ?? '', viewonce ?? false, msgid ?? '');
+    const result = await wa.sendPhoto(number, url, caption ?? '', viewonce ?? false, msgid ?? '');
     if (result) {
       return sendApiResponse(res, 200, 'Photo message sent successfully', result);
     }
@@ -130,13 +130,13 @@ const sendPhotoMessage = async (req, res) => {
     return sendApiResponse(res, 400, 'Failed to send photo message', {});
   }
   return sendApiResponse(res, 400, 'Check your parameter', {});
-};
+}
 
-const sendDocumentMessage = async (req, res) => {
+async function sendDocumentMessage(req, res) {
   const token = process.env.SENDER_NUMBER;
   const { number, url, caption, filename, msgid } = req.body;
   if (token && number && url) {
-    const result = await wa.sendDocument(token, number, url, caption ?? '', filename, msgid ?? '');
+    const result = await wa.sendDocument(number, url, caption ?? '', filename, msgid ?? '');
     if (result) {
       return sendApiResponse(res, 200, 'Document message sent successfully', result);
     }
@@ -144,6 +144,6 @@ const sendDocumentMessage = async (req, res) => {
     return sendApiResponse(res, 400, 'Failed to send document message', {});
   }
   return sendApiResponse(res, 400, 'Check your parameter', {});
-};
+}
 
 export { connectDevice, disconnectDevice, sendTextMessage, sendPhotoMessage, sendDocumentMessage };
