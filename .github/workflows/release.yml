@@ -24,7 +24,7 @@ jobs:
 
           VERSION="$(python -c 'import json; print(json.load(open("package.json"))["version"])')"
 
-          FILES=(app.js package.json controllers database lib router)
+          FILES=(app.js package.json controllers lib router)
 
           if [ -f .env.example ]; then
             cp .env.example .env

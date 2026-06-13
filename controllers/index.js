@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { sendApiResponse } from '../lib/response.js';
 
 const connectDevice = async (req, res) => {
-  const { token } = req.body;
+  const token = process.env.SENDER_NUMBER;
   if (!token) return sendApiResponse(res, 400, 'Token needed', { qrcode: null, connected: false });
   try {
     const first = await wa.connectDevice(token);
@@ -93,7 +93,7 @@ const connectDevice = async (req, res) => {
 };
 
 const disconnectDevice = async (req, res) => {
-  const { token: token } = req.body;
+  const token = process.env.SENDER_NUMBER;
   if (token) {
     const result = await wa.disconnectDevice(token);
     return sendApiResponse(res, 200, result?.message || 'Device disconnected', {
@@ -105,7 +105,8 @@ const disconnectDevice = async (req, res) => {
 };
 
 const sendTextMessage = async (req, res) => {
-  const { token, number, msgid, text } = req.body;
+  const token = process.env.SENDER_NUMBER;
+  const { number, msgid, text } = req.body;
   if (token && number && text) {
     const result = await wa.sendTextMessage(token, number, msgid ?? '', text);
     if (result) {
@@ -118,7 +119,8 @@ const sendTextMessage = async (req, res) => {
 };
 
 const sendPhotoMessage = async (req, res) => {
-  const { token, number, url, caption, msgid, viewonce } = req.body;
+  const token = process.env.SENDER_NUMBER;
+  const { number, url, caption, msgid, viewonce } = req.body;
   if (token && number && url) {
     const result = await wa.sendPhoto(token, number, url, caption ?? '', viewonce ?? false, msgid ?? '');
     if (result) {
@@ -131,7 +133,8 @@ const sendPhotoMessage = async (req, res) => {
 };
 
 const sendDocumentMessage = async (req, res) => {
-  const { token, number, url, caption, filename, msgid } = req.body;
+  const token = process.env.SENDER_NUMBER;
+  const { number, url, caption, filename, msgid } = req.body;
   if (token && number && url) {
     const result = await wa.sendDocument(token, number, url, caption ?? '', filename, msgid ?? '');
     if (result) {

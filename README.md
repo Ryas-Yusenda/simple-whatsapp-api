@@ -13,7 +13,7 @@ This project exposes a small Express-based REST API for:
 - Sending photo messages
 - Sending document messages
 
-It also includes socket-based connection handling for QR code pairing and realtime device updates, as well as request rate limiting on critical message and device endpoints.
+It also includes socket-based connection handling for QR code pairing and realtime device updates, and uses a single configured device number from environment variables.
 
 ## Installation
 
@@ -34,10 +34,12 @@ Create a `.env` file at the project root with the values below:
 ```env
 PORT_NODE=3100
 X_ACCESS_TOKEN=your-secret-token
+SENDER_NUMBER=6285234562787
 ```
 
 - `PORT_NODE` is the port the Express server listens on.
 - `X_ACCESS_TOKEN` is optional. When set, requests to `/api/v1/*` must include a matching `x-access-token` header.
+- `SENDER_NUMBER` is the device number used for all device and message routes. The API will use this value automatically, so you do not need to send `token` in the JSON body.
 
 ## Run the Application
 
@@ -61,21 +63,6 @@ npx nodemon app.js
 - `POST /api/v1/messages/photo` - Send a photo message
 - `POST /api/v1/messages/document` - Send a document message
 
-## Rate Limiting
-
-The API applies rate limiting to reduce abuse and excessive request bursts on sensitive endpoints.
-
-| Endpoint                          | Limit                     |
-| --------------------------------- | ------------------------- |
-| `POST /api/v1/devices/connect`    | 1 request every 5 seconds |
-| `POST /api/v1/devices/restore`    | 1 request every 5 seconds |
-| `POST /api/v1/devices/disconnect` | 1 request every 5 seconds |
-| `POST /api/v1/messages/text`      | 1 request every 1 second  |
-| `POST /api/v1/messages/photo`     | 1 request every 5 seconds |
-| `POST /api/v1/messages/document`  | 1 request every 8 seconds |
-
-If the limit is exceeded, the API responds with HTTP 429 and a message: `Too many requests, please try again later.`
-
 ## Request Headers
 
 - `Content-Type: application/json`
@@ -83,19 +70,18 @@ If the limit is exceeded, the API responds with HTTP 429 and a message: `Too man
 
 ## Request Payloads
 
-### Connect device
+### Connect / Restore / Disconnect device
+
+No `token` field is required in the request body. The API uses `SENDER_NUMBER` from `.env` automatically.
 
 ```json
-{
-  "token": "DEVICE_TOKEN"
-}
+{}
 ```
 
 ### Send text message
 
 ```json
 {
-  "token": "DEVICE_TOKEN",
   "number": "6281234567890",
   "msgid": "",
   "text": "Hello from WhatsApp API"
@@ -106,7 +92,6 @@ If the limit is exceeded, the API responds with HTTP 429 and a message: `Too man
 
 ```json
 {
-  "token": "DEVICE_TOKEN",
   "number": "6281234567890",
   "url": "https://example.com/sample.jpg",
   "caption": "Test image",
@@ -119,7 +104,6 @@ If the limit is exceeded, the API responds with HTTP 429 and a message: `Too man
 
 ```json
 {
-  "token": "DEVICE_TOKEN",
   "number": "6281234567890",
   "url": "https://example.com/sample.pdf",
   "caption": "Test document",
@@ -128,13 +112,8 @@ If the limit is exceeded, the API responds with HTTP 429 and a message: `Too man
 }
 ```
 
-## Data Storage
-
-- Device metadata is stored in `database/whatsapp_devices.json`.
-- WhatsApp credentials are stored under the `credentials/` directory.
-
 ## Notes
 
-- A device token is created automatically when `POST /api/v1/devices/connect` is called.
+- The active device number is taken from `SENDER_NUMBER` in `.env`, so requests no longer need a `token` field in the body.
 - `POST /api/v1/messages/text`, `POST /api/v1/messages/photo`, and `POST /api/v1/messages/document` validate that the destination number is registered in WhatsApp and that the sender is connected.
 - Unknown routes are redirected to `/`.

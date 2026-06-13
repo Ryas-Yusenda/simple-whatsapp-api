@@ -3,9 +3,7 @@ import 'dotenv/config';
 import express from 'express';
 import bodyParser from 'body-parser';
 
-import { getConnectedDevices } from './database/index.js';
 import router from './router/index.js';
-import * as wa from './lib/whatsapp.js';
 import { sendApiResponse } from './lib/response.js';
 
 const app = express();
@@ -38,16 +36,4 @@ app.use((req, res) => {
   server.listen(PORT, () => {
     console.log(`Server running and listening on port: ${PORT}`);
   });
-
-  try {
-    const connectedDevices = await getConnectedDevices();
-    connectedDevices.forEach((deviceRow) => {
-      const deviceBody = deviceRow.body;
-      if (/^\d+$/.test(deviceBody)) {
-        wa.connectDevice(deviceBody);
-      }
-    });
-  } catch (error) {
-    console.error('Failed to load connected devices:', error);
-  }
 })();

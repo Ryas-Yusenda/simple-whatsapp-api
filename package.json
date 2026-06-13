@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "whatsapp-api-service",
-  "version": "1.0.0",
+  "version": "1.6.0",
   "description": "Minimal WhatsApp API for sending text and media messages.",
   "main": "app.js",
   "author": "ry-ys",
@@ -17,7 +17,6 @@
     "body-parser": "^2.2.2",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.5.2",
     "mime-types": "^3.0.2",
     "node-cache": "^5.1.2",
     "pino-pretty": "^13.1.3",
