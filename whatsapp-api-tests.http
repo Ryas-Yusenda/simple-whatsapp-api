@@ -1,6 +1,6 @@
 @baseUrl = http://localhost:3100
-@xWhatsappHost = 3pstCplNPK9q0ksJ8r8kbe3IuOp5RBgJ
-@sendTo = 120363428217270931@g.us
+@xWhatsappHost = X_ACCESS_TOKEN
+@sendTo = 62xxxxx
 
 ### Root endpoint
 GET {{baseUrl}}/
