@@ -2,6 +2,8 @@ import * as wa from '../lib/whatsapp.js';
 import QRCode from 'qrcode';
 import { sendApiResponse } from '../lib/response.js';
 
+import mime from 'mime-types';
+
 async function connectDevice(req, res) {
   const token = process.env.SENDER_NUMBER;
   if (!token) return sendApiResponse(res, 400, 'SENDER_NUMBER not configured', { qrcode: null, connected: false });
@@ -121,15 +123,44 @@ async function sendTextMessage(req, res) {
 async function sendPhotoMessage(req, res) {
   const token = process.env.SENDER_NUMBER;
   const { number, url, caption, msgid, viewonce } = req.body;
-  if (token && number && url) {
+
+  if (!token || !number || !url) {
+    return sendApiResponse(res, 400, 'Check your parameter', {});
+  }
+
+  try {
+    // detect mime first (fast check)
+    const resHead = await fetch(url, { redirect: 'follow' });
+    let mimeType = resHead.headers.get('content-type') || '';
+
+    // fallback from extension
+    const extMime = mime.lookup(url) || '';
+
+    mimeType = (mimeType || extMime).toLowerCase();
+
+    // strict whitelist
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png'];
+
+    const isAllowed = allowed.includes(mimeType) || url.match(/\.(jpg|jpeg|png)$/i);
+
+    if (!isAllowed) {
+      return sendApiResponse(res, 400, 'Only JPG, JPEG, PNG allowed', {
+        detected: mimeType,
+      });
+    }
+
     const result = await wa.sendPhoto(number, url, caption ?? '', viewonce ?? false, msgid ?? '');
+
     if (result) {
       return sendApiResponse(res, 200, 'Photo message sent successfully', result);
     }
 
     return sendApiResponse(res, 400, 'Failed to send photo message', {});
+  } catch (err) {
+    return sendApiResponse(res, 500, 'Error processing image', {
+      error: err.message,
+    });
   }
-  return sendApiResponse(res, 400, 'Check your parameter', {});
 }
 
 async function sendDocumentMessage(req, res) {
